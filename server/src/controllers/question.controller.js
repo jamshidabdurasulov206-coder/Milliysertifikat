@@ -3,7 +3,7 @@ const questionService = require("../services/question.service");
 exports.createQuestion = async (req, res) => {
   try {
     // Required fields basic validation
-    const { test_id, question_text, options, correct_option, difficulty_level } = req.body;
+    const { test_id, question_text, options, correct_option } = req.body;
 
     if (!test_id || !question_text || options == null || correct_option == null) {
       return res.status(400).json({
@@ -36,7 +36,7 @@ exports.createQuestion = async (req, res) => {
       question_text,
       options: parsedOptions,
       correct_option,
-      difficulty_level: Number(difficulty_level ?? 0.0)
+      difficulty_level: 1.0
     };
 
     const question = await questionService.createQuestion(questionData);
@@ -56,7 +56,12 @@ exports.createQuestion = async (req, res) => {
 
 exports.getQuestionsByTest = async (req, res) => {
   try {
-    const questions = await questionService.getQuestionsByTest(req.params.testId);
+    let questions = await questionService.getQuestionsByTest(req.params.testId);
+    // Remove correct_answer_text from each question before sending to frontend
+    questions = questions.map(q => {
+      const { correct_answer_text, ...rest } = q;
+      return rest;
+    });
     res.json({
       success: true,
       count: questions.length,

@@ -1,11 +1,18 @@
 const pool = require("../config/db");
 
 exports.createQuestion = async (data) => {
-  let { test_id, question_text, options, correct_option, difficulty_level } = data;
+  let { test_id, question_text, type, options, correct_option, correct_answer_text, difficulty_level, image_url } = data;
 
   // Rasch modeli uchun majburiy maydonlar tekshiruvi
-  if (!test_id || !question_text || options == null || correct_option == null) {
+  if (!test_id || !question_text || options == null) {
     throw new Error("Barcha maydonlar to'ldirilishi shart");
+  }
+  // Multiple uchun correct_option majburiy, open uchun correct_answer_text majburiy
+  if (type === 'multiple' && (correct_option === undefined || correct_option === null || isNaN(correct_option))) {
+    throw new Error("Multiple choice savollar uchun correct_option majburiy");
+  }
+  if (type === 'open' && (!correct_answer_text || correct_answer_text.trim() === '')) {
+    throw new Error("Ochiq savollar uchun correct_answer_text majburiy");
   }
 
   // test_id butun son bo'lishi tekshiruvi
@@ -15,9 +22,9 @@ exports.createQuestion = async (data) => {
   }
   test_id = parsedTestId;
 
-  // difficulty_level ni raqamga aylantirish
+  // difficulty_level ni raqamga aylantirish (qo'lda kiritilmasa neutral 1.0)
   if (difficulty_level === undefined || difficulty_level === null) {
-    difficulty_level = 0.0;
+    difficulty_level = 1.0;
   } else {
     const parsedDifficulty = Number(difficulty_level);
     if (Number.isNaN(parsedDifficulty)) {
@@ -48,10 +55,10 @@ exports.createQuestion = async (data) => {
   }
 
   const result = await pool.query(
-    `INSERT INTO questions (test_id, question_text, options, correct_option, difficulty_level) 
-     VALUES ($1, $2, $3, $4, $5) 
+    `INSERT INTO questions (test_id, question_text, type, options, correct_option, correct_answer_text, difficulty_level, image_url) 
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
      RETURNING *`,
-    [test_id, question_text, finalOptions, correct_option, difficulty_level]
+    [test_id, question_text, type, finalOptions, correct_option, correct_answer_text, difficulty_level, image_url]
   );
 
   return result.rows[0];
