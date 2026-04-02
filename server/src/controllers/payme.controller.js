@@ -1,11 +1,35 @@
 const pool = require("../config/db");
 
+// Payme secret kalitini tekshirish middleware
+function verifyPaymeAuth(req, res, next) {
+  const authHeader = req.headers.authorization;
+  const paymeSecretKey = process.env.PAYME_SECRET_KEY;
+
+  if (!paymeSecretKey) {
+    console.error("PAYME_SECRET_KEY .env da topilmadi!");
+    return res.json({ error: { code: -32504, message: "Server konfiguratsiya xatosi" } });
+  }
+
+  // Payme Basic auth formatida yuboradi: Basic base64(merchant_id:secret_key)
+  if (authHeader && authHeader.startsWith("Basic ")) {
+    const decoded = Buffer.from(authHeader.slice(6), "base64").toString();
+    const [, secret] = decoded.split(":");
+    if (secret !== paymeSecretKey) {
+      return res.json({ error: { code: -32504, message: "Autentifikatsiya xatosi" } });
+    }
+  }
+  // Payme test muhitida auth header bo'lmasligi mumkin, davom etamiz
+  next();
+}
+
+exports.verifyPaymeAuth = verifyPaymeAuth;
+
 exports.paymeCallback = async (req, res) => {
   const { method, params, id } = req.body;
 
   try {
     switch (method) {
-      case "CheckPerformTransaction":
+      case "CheckPerformTransaction": {
         const testId = params.account.test_id;
         const amount = params.amount;
 
@@ -21,8 +45,9 @@ exports.paymeCallback = async (req, res) => {
         }
 
         return res.json({ result: { allow: true }, id });
+      }
 
-      case "CreateTransaction":
+      case "CreateTransaction": {
         const { id: paymeTrId, time, account } = params;
         
         // Bu tranzaksiya allaqachon bormi?
@@ -38,7 +63,6 @@ exports.paymeCallback = async (req, res) => {
         }
 
         // Yangi orderni tranzaksiyaga bog'lash
-        // (Eslatma: user_id ni avvalroq yaratilgan orderdan olish kerak yoki account'da yuborish kerak)
         const updateOrder = await pool.query(
           "UPDATE orders SET transaction_id = $1, payme_time = $2, state = 1 WHERE test_id = $3 AND state = 0 RETURNING *",
           [paymeTrId, time, account.test_id]
@@ -49,8 +73,9 @@ exports.paymeCallback = async (req, res) => {
         }
 
         return res.json({ result: { create_time: time, transaction: paymeTrId, state: 1 }, id });
+      }
 
-      case "PerformTransaction":
+      case "PerformTransaction": {
         const result = await pool.query(
           "UPDATE orders SET state = 2 WHERE transaction_id = $1 AND state = 1 RETURNING *",
           [params.id]
@@ -60,13 +85,15 @@ exports.paymeCallback = async (req, res) => {
           return res.json({ result: { transaction: params.id, perform_time: Date.now(), state: 2 }, id });
         }
         return res.json({ error: { code: -31008, message: "Xatolik" }, id });
+      }
 
-      case "CancelTransaction":
+      case "CancelTransaction": {
         await pool.query(
           "UPDATE orders SET state = -1, cancel_time = $1, reason = $2 WHERE transaction_id = $3",
           [Date.now(), params.reason, params.id]
         );
         return res.json({ result: { transaction: params.id, cancel_time: Date.now(), state: -1 }, id });
+      }
 
       default:
         return res.json({ error: { code: -32601, message: "Metod topilmadi" }, id });

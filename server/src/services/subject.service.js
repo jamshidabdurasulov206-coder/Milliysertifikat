@@ -8,6 +8,9 @@ exports.createSubject = async (data) => {
   return await subjectModel.createSubject(data.name);
 };
 
-exports.getSubjects = async () => {
+exports.getSubjects = async (page = null, limit = null) => {
+  if (page && limit) {
+    return await subjectModel.getSubjects(limit, (page - 1) * limit);
+  }
   return await subjectModel.getSubjects();
 };

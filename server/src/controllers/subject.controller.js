@@ -11,7 +11,9 @@ exports.createSubject = async (req, res) => {
 
 exports.getSubjects = async (req, res) => {
   try {
-    const subjects = await subjectService.getSubjects();
+    const page = req.query.page ? parseInt(req.query.page) : null;
+    const limit = req.query.limit ? parseInt(req.query.limit) : null;
+    const subjects = await subjectService.getSubjects(page, limit);
     res.json(subjects);
   } catch (err) {
     res.status(500).json({ message: err.message });

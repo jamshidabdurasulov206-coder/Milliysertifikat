@@ -72,7 +72,7 @@ async function evaluateAttemptByAI(attemptId) {
   const totalBinaryScore = openTotalBinary + closedTotal;
 
   await pool.query(
-    `UPDATE attempts SET written_scores = $1, score = $2, final_score = $3,
+    `UPDATE attempts SET written_scores = $1, score = $2, raw_score = $3, final_score = NULL,
      is_reviewed = true, is_published = false, status = 'ready_for_rasch',
      final_theta_score = NULL, z_score = NULL, t_score = NULL,
      standard_ball = NULL, level = 'PENDING'

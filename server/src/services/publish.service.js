@@ -155,9 +155,10 @@ exports.publishBatch = async (testId, { publish = true } = {}) => {
           status = $6,
           is_published = $7,
           final_score = $8,
-          score = $9
-         WHERE id = $10`,
-        [final_theta_score, z_score, t_score, standard_ball, level, nextStatus, nextPublished, standard_ball, res.rawBinary, res.id]
+          score = $9,
+          raw_score = $10
+         WHERE id = $11`,
+        [final_theta_score, z_score, t_score, standard_ball, level, nextStatus, nextPublished, standard_ball, res.rawBinary, res.rawBinary, res.id]
       );
     }
 

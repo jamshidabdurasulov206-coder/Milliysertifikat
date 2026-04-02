@@ -2,7 +2,8 @@
 const jwt = require("jsonwebtoken");
 
 module.exports = (req, res, next) => {
-  let token = req.headers.authorization;
+  // Har xil harfda kelishi mumkin: authorization yoki Authorization
+  let token = req.headers.authorization || req.headers.Authorization;
 
   // 1. Token borligini tekshirish
   if (!token) {
@@ -19,7 +20,7 @@ module.exports = (req, res, next) => {
     req.user = decoded;
     next(); // Keyingi funksiyaga o'tish
   } catch (error) {
-    // Xatolikni aniqroq ko'rsatish (expired yoki noto'g'ri)
+    console.error("JWT xatosi:", error.message);
     return res.status(401).json({ message: "Invalid or expired token" });
   }
 };
